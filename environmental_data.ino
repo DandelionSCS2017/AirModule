@@ -23,7 +23,6 @@ ATTDevice device(&modem, &debugSerial, false, 7000);  // minimum time between 2 
 
 PayloadBuilder payload(device);
 
-AirQuality2 airqualitysensor;
 Adafruit_BME280 tph; // I2C
 
 float soundValue;
@@ -31,6 +30,22 @@ float soundValue;
 float temp;
 float hum;
 float pres;
+
+// -------------------------- CO2 Definitions --------------------------------//
+#include <SoftwareSerial.h>
+SoftwareSerial s_serial(2, 3);      // TX, RX
+
+#define sensor s_serial
+
+const unsigned char cmd_get_sensor[] =
+{
+    0xff, 0x01, 0x86, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x79
+};
+
+float CO2Value = 1900;
+
+//---------------------------------------------------------------------------//
 
 
 void setup() 
@@ -89,6 +104,7 @@ void readSensors()
     temp = tph.readTemperature();
     hum = tph.readHumidity();
     pres = tph.readPressure()/100.0;
+    CO2Value = co2Read();
 }
 
 void process()
@@ -109,6 +125,7 @@ void sendSensorValues()
   payload.addNumber(pres);
   payload.addNumber(hum);
   payload.addNumber(soundValue);
+  payload.addNumber(CO2Value);
   
   payload.addToQueue(false);  
   process();
@@ -131,7 +148,50 @@ void displaySensorValues()
   debugSerial.print("Pressure: ");
   debugSerial.print(pres);
 	debugSerial.println(" hPa");
+
+  debugSerial.print("CO2: ");
+  debugSerial.print(CO2Value);
+  debugSerial.println(" ppm");
   
 }
 
+
+
+//----------------- Data Receive Method for CO2 Sensor ---------------------------------//
+int co2Read(void)
+{
+    int CO2PPM;
+    
+    byte data[9];
+    int i = 0;
+
+    //transmit command data
+    for(i=0; i<sizeof(cmd_get_sensor); i++)
+    {
+        sensor.write(cmd_get_sensor[i]);
+    }
+    delay(10);
+    //begin reveiceing data
+    if(sensor.available())
+    {
+        while(sensor.available())
+        {
+            for(int i=0;i<9; i++)
+            {
+                data[i] = sensor.read();
+            }
+        }
+    }
+    
+    Serial.println("");
+
+    if((i != 9) || (1 + (0xFF ^ (byte)(data[1] + data[2] + data[3] + data[4] + data[5] + data[6] + data[7]))) != data[8])
+    {
+        return 0;
+    }
+
+    CO2PPM = (int)data[2] * 256 + (int)data[3];
+
+    return CO2PPM;
+}
 
