@@ -33,7 +33,7 @@ float pres;
 
 // -------------------------- CO2 Definitions --------------------------------//
 #include <SoftwareSerial.h>
-SoftwareSerial s_serial(2, 3);      // TX, RX
+SoftwareSerial s_serial(4, 5);      // TX, RX
 
 #define sensor s_serial
 
@@ -187,7 +187,7 @@ int co2Read(void)
 
     if((i != 9) || (1 + (0xFF ^ (byte)(data[1] + data[2] + data[3] + data[4] + data[5] + data[6] + data[7]))) != data[8])
     {
-        return 0;
+        return 42;
     }
 
     CO2PPM = (int)data[2] * 256 + (int)data[3];
