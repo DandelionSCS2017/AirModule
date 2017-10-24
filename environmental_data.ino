@@ -26,14 +26,36 @@ PayloadBuilder payload(device);
 Adafruit_BME280 tph; // I2C
 
 float soundValue;
-
+// TPH ---------//
 float temp;
 float hum;
 float pres;
+//----------------//
+
+// Battery and Solar //
+
+#define batPin A6
+#define solarPin A7
+float vBat, vRead;
+float vSolar, vReadS;
+
+bool readBat = true;
+bool readSolar = true;
+
+//---------------------//
+
+//----------- MQ9 Gas Sensors Definitions -----------------------------------//
+#define R0 0.15    // R0 as set by calibration testing
+#define MQ9_Pin A0
+
+int ch4Value = 0;
+int coValue = 0; 
+int lpgValue = 0;
+//---------------------------------------------------------------------------///
 
 // -------------------------- CO2 Definitions --------------------------------//
 #include <SoftwareSerial.h>
-SoftwareSerial s_serial(2, 3);      // TX, RX
+SoftwareSerial s_serial(4, 5);      // TX, RX
 
 #define sensor s_serial
 
@@ -43,7 +65,7 @@ const unsigned char cmd_get_sensor[] =
     0x00, 0x00, 0x00, 0x79
 };
 
-float CO2Value = 1900;
+float CO2PPM =420;
 
 //---------------------------------------------------------------------------//
 
@@ -85,10 +107,20 @@ void loop()
 void initSensors()
 {
   debugSerial.println("Initializing sensors, this can take a few seconds...");
-  
   pinMode(SoundSensorPin, INPUT);
   tph.begin();
+  sensor.begin(9600);
   debugSerial.println("Done");
+
+  //----------------  MQ9 Setup ---------//
+    pinMode(MQ9_Pin, INPUT);
+   //------------------------------------//
+
+   //------------------ Batt and Solar ---//
+    pinMode(batPin, INPUT);
+    pinMode(solarPin, INPUT);
+   //-------------------------------------//
+  
 }
 
 void readSensors()
@@ -104,7 +136,21 @@ void readSensors()
     temp = tph.readTemperature();
     hum = tph.readHumidity();
     pres = tph.readPressure()/100.0;
-    CO2Value = co2Read();
+    dataReceive();
+    gasReadings(ch4Value, coValue, lpgValue);
+
+    // ------------- Batt and Solar ------------------//
+        if(readBat)
+      {
+        vRead = (analogRead(batPin)/1024.0f)*3.3f;
+        vBat = vRead/(10.0/14.7);
+      }
+      if(readSolar)
+      {
+        vReadS = (analogRead(solarPin)/1024.0f)*3.3f;
+        vSolar = vReadS * 2.0f;
+      }    
+    //-------------------------------------------------//
 }
 
 void process()
@@ -125,7 +171,13 @@ void sendSensorValues()
   payload.addNumber(pres);
   payload.addNumber(hum);
   payload.addNumber(soundValue);
-  payload.addNumber(CO2Value);
+  payload.addNumber(CO2PPM);
+  payload.addNumber(coValue);
+  payload.addNumber(ch4Value);
+  payload.addNumber(lpgValue);
+  payload.addNumber(vBat);
+  payload.addNumber(vSolar);
+  
   
   payload.addToQueue(false);  
   process();
@@ -150,18 +202,36 @@ void displaySensorValues()
 	debugSerial.println(" hPa");
 
   debugSerial.print("CO2: ");
-  debugSerial.print(CO2Value);
+  debugSerial.print(CO2PPM);
   debugSerial.println(" ppm");
   
+  debugSerial.print("CH4: ");
+  debugSerial.print(ch4Value);
+  debugSerial.println(" ppm");
+  
+  debugSerial.print("CO: ");
+  debugSerial.print(coValue);
+  debugSerial.println(" ppm");
+  
+  debugSerial.print("LPG: ");
+  debugSerial.print(lpgValue);
+  debugSerial.println(" ppm");
+
+  debugSerial.print("BAT: ");
+  debugSerial.print(vBat);
+  debugSerial.println(" V");
+
+  debugSerial.print("SOLAR: ");
+  debugSerial.print(vSolar);
+  debugSerial.println(" V");
+  
+  debugSerial.println();
+
 }
 
 
-
-//----------------- Data Receive Method for CO2 Sensor ---------------------------------//
-int co2Read(void)
+bool dataReceive(void)
 {
-    int CO2PPM;
-    
     byte data[9];
     int i = 0;
 
@@ -182,16 +252,36 @@ int co2Read(void)
             }
         }
     }
+
+    /*for(int j=0; j<9; j++)
+    {
+        Serial.print(data[j]);
+        Serial.print(" ");
+    }*/
     
-    Serial.println("");
 
     if((i != 9) || (1 + (0xFF ^ (byte)(data[1] + data[2] + data[3] + data[4] + data[5] + data[6] + data[7]))) != data[8])
     {
-        return 0;
+        return false;
     }
 
     CO2PPM = (int)data[2] * 256 + (int)data[3];
 
-    return CO2PPM;
+    return true;
 }
 
+void gasReadings(int & ch4Value, int & coValue, int & lpgValue)
+{
+  float sensor_volt;     
+  float RS_gas; // Get value of RS in a GAS
+  float ratio; // Get ratio RS_GAS/RS_air
+  int sensorValue = analogRead(MQ9_Pin);
+  sensor_volt=(float)sensorValue/1024*5.0;
+  RS_gas = (5.0-sensor_volt)/sensor_volt; // omit *RL
+  
+  ratio = RS_gas/R0;  // ratio = RS/R0
+
+  ch4Value = pow((19.821/ratio),2.739);
+  coValue = pow((14.882/ratio),2.315);
+  lpgValue = pow((21.161/ratio),2.222);
+}
