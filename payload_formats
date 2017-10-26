@@ -1,0 +1,84 @@
+{
+  "sense": [
+    {
+      "asset": "Dandelion_Temperature",
+      "value": {
+        "byte": 0,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_Pressure",
+      "value": {
+        "byte": 4,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_Humidity",
+      "value": {
+        "byte": 8,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_Sound",
+      "value": {
+        "byte": 12,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_CO2",
+      "value": {
+        "byte": 16,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_CO",
+      "value": {
+        "byte": 20,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_CH4",
+      "value": {
+        "byte": 24,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_LPG",
+      "value": {
+        "byte": 28,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_Battery",
+      "value": {
+        "byte": 32,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+   	{
+      "asset": "Dandelion_Solar",
+      "value": {
+        "byte": 36,
+        "bytelength": 4,
+        "type": "number"
+      }
+    }
+  ]
+}
