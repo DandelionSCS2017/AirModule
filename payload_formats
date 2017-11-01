@@ -72,10 +72,18 @@
         "type": "number"
       }
     },
-   	{
+    {
       "asset": "Dandelion_Solar",
       "value": {
         "byte": 36,
+        "bytelength": 4,
+        "type": "number"
+      }
+    },
+    {
+      "asset": "Dandelion_Dust_Density",
+      "value": {
+        "byte": 40,
         "bytelength": 4,
         "type": "number"
       }
